@@ -148,6 +148,7 @@ def technical_indicators(name, country, product_type, interval='daily'):
 
     root = fromstring(req.text)
     table = root.xpath(".//table[contains(@class, 'technicalIndicatorsTbl')]/tbody/tr")
+    print(table)
 
     tech_indicators = list()
 
@@ -165,6 +166,100 @@ def technical_indicators(name, country, product_type, interval='daily'):
                 })
 
     return pd.DataFrame(tech_indicators)
+
+def technical_summary(name, country, product_type, interval='daily'):
+
+    if not name:
+        raise ValueError("ERR#0116: the parameter name must be specified and must be a string.")
+
+    if not isinstance(name, str):
+        raise ValueError("ERR#0116: the parameter name must be specified and must be a string.")
+
+    if country is not None and not isinstance(country, str):
+        raise ValueError("ERR#0117: this parameter can just be None or a string, if required.")
+
+    if not product_type:
+        raise ValueError("ERR#0118: product_type value is mandatory and must be a string.")
+
+    if not isinstance(product_type, str):
+        raise ValueError("ERR#0118: product_type value is mandatory and must be a string.")
+
+    if not interval:
+        raise ValueError("ERR#0121: interval value is mandatory and must be a string.")
+
+    if not isinstance(interval, str):
+        raise ValueError("ERR#0121: interval value is mandatory and must be a string.")
+
+    product_type = unidecode(product_type.lower().strip())
+
+    if product_type not in cst.PRODUCT_TYPE_FILES.keys():
+        raise ValueError("ERR#0119: introduced product_type value does not exist. Available values are: " + ', '.join(cst.PRODUCT_TYPE_FILES.keys()))
+
+    if interval:
+        if interval not in cst.INTERVAL_FILTERS.keys():
+            raise ValueError("ERR#0120: introduced interval value does not exist. Available values are: " + ', '.join(cst.INTERVAL_FILTERS.keys()))
+
+    data = resource_to_data(path_to_data=cst.PRODUCT_TYPE_FILES[product_type])
+
+    if product_type not in ['currency_cross']:
+        if country is not None:
+            country = unidecode(country.lower().strip())
+
+            if country not in data['country'].tolist():
+                raise ValueError("ERR#0124: introduced country does not exist or is not available.")
+
+            data = data[data['country'] == country]
+        else:
+            if product_type != 'commodity':
+                raise ValueError("ERR#0123: country parameter is required with the introduced product_type.")
+
+    if product_type == 'stock':
+        check = 'symbol'
+    else:
+        check = 'name'
+
+    name = unidecode(name.lower().strip())
+
+    if name not in [unidecode(value.lower()) for value in data[check].tolist()]:
+        raise ValueError("ERR#0122: introduced name does not exist in the introduced country (if required).")
+
+    product_id = data.loc[(data[check].str.lower() == name).idxmax(), 'id']
+
+    data_values = {
+        'pairID': product_id,
+        'period': cst.INTERVAL_FILTERS[interval],
+        'viewType': 'normal'
+    }
+
+    headers = {
+        "User-Agent": random_user_agent(),
+        "X-Requested-With": "XMLHttpRequest",
+        "Accept": "text/html",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+    }
+
+    url = "https://www.investing.com/instruments/Service/GetTechincalData"
+
+    req = requests.post(url, headers=headers, data=data_values)
+
+    if req.status_code != 200:
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
+
+    root = fromstring(req.text)
+    table = root.xpath(".//table[contains(@class, 'technicalIndicatorsTbl')]/tbody/tr")
+
+    summary = ''
+
+    for row in table:
+        for value in row.xpath("td"):
+            if value.get('class').__contains__('lastRow'):
+                for item in value.xpath('p'):
+                    for span in value.xpath('span'):
+                        if span.get('class').__contains__('bold'):
+                            summary = span.text_content.strip()
+                            
+    return summary
 
 
 def moving_averages(name, country, product_type, interval='daily'):
@@ -479,3 +574,43 @@ def pivot_points(name, country, product_type, interval='daily'):
         pivot_pts.append(pivot_pt)
 
     return pd.DataFrame(pivot_pts)
+
+
+def test_investpy_technical():
+    """
+    This function checks that investpy news retrieval functionality works as expected.
+    """
+
+    params = [
+        {
+            'name': 'bbva',
+            'country': 'spain',
+            'product_type': 'stock',
+            'interval': 'weekly',
+        },
+        {
+            'name': 'bbva mi inversion rf mixta fi',
+            'country': 'spain',
+            'product_type': 'fund',
+            'interval': 'daily',
+        },
+    ]
+
+    for param in params:
+        investpy.technical_indicators(name=param['name'],
+                                      country=param['country'],
+                                      product_type=param['product_type'],
+                                      interval=param['interval'])
+
+        investpy.moving_averages(name=param['name'],
+                                 country=param['country'],
+                                 product_type=param['product_type'],
+                                 interval=param['interval'])
+
+        investpy.pivot_points(name=param['name'],
+                              country=param['country'],
+                              product_type=param['product_type'],
+                              interval=param['interval'])
+
+
+test_investpy_technical()
