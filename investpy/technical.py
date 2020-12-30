@@ -255,7 +255,7 @@ def technical_summary(name, country, product_type, interval='daily'):
         for value in row.xpath("td"):
             if value.get('class').__contains__('lastRow'):
                 for item in value.xpath('p'):
-                    for span in value.xpath('span'):
+                    for span in item.xpath('span'):
                         if span.get('class').__contains__('bold'):
                             summary = span.text_content.strip()
 
@@ -574,4 +574,3 @@ def pivot_points(name, country, product_type, interval='daily'):
         pivot_pts.append(pivot_pt)
 
     return pd.DataFrame(pivot_pts)
-    
