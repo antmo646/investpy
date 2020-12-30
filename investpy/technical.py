@@ -256,8 +256,9 @@ def technical_summary(name, country, product_type, interval='daily'):
             if value.get('class').__contains__('lastRow'):
                 for item in value.xpath('p'):
                     for span in item.xpath('span'):
-                        if span.get('class').__contains__('bold'):
-                            summary = span.text_content.strip()
+                        if span.get('class') is not None:
+                            if span.get('class').__contains__('bold'):
+                                summary = span.text_content.strip()
 
     return summary
 
