@@ -258,7 +258,7 @@ def technical_summary(name, country, product_type, interval='daily'):
                     for span in value.xpath('span'):
                         if span.get('class').__contains__('bold'):
                             summary = span.text_content.strip()
-                            
+
     return summary
 
 
@@ -574,43 +574,4 @@ def pivot_points(name, country, product_type, interval='daily'):
         pivot_pts.append(pivot_pt)
 
     return pd.DataFrame(pivot_pts)
-
-
-def test_investpy_technical():
-    """
-    This function checks that investpy news retrieval functionality works as expected.
-    """
-
-    params = [
-        {
-            'name': 'bbva',
-            'country': 'spain',
-            'product_type': 'stock',
-            'interval': 'weekly',
-        },
-        {
-            'name': 'bbva mi inversion rf mixta fi',
-            'country': 'spain',
-            'product_type': 'fund',
-            'interval': 'daily',
-        },
-    ]
-
-    for param in params:
-        investpy.technical_indicators(name=param['name'],
-                                      country=param['country'],
-                                      product_type=param['product_type'],
-                                      interval=param['interval'])
-
-        investpy.moving_averages(name=param['name'],
-                                 country=param['country'],
-                                 product_type=param['product_type'],
-                                 interval=param['interval'])
-
-        investpy.pivot_points(name=param['name'],
-                              country=param['country'],
-                              product_type=param['product_type'],
-                              interval=param['interval'])
-
-
-test_investpy_technical()
+    
